@@ -1,14 +1,348 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>我的个人主页</title>
-</head>
-<body style="text-align: center; padding-top: 50px; font-family: sans-serif;">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>给特别的你</title>
+    <style>
+        /* --- 全局设置 --- */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* 禁止滚动，让图片在屏幕内飘 */
+            background-color: #fcf6f5; /* 温暖的米白色背景 */
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
 
-    <h1>你好，世界！</h1>
-    <p>这是我利用 GitHub Pages 搭建的第一个免费网站。</p>
-    <p>我可以把这里当做我的博客、简历或者项目展示。</p>
-    
+        /* --- 漂浮图片区域 --- */
+        #floating-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1; /* 在最底层 */
+            pointer-events: none; /* 让鼠标能透过图片点击下面的东西 */
+        }
+
+        .float-img {
+            position: absolute;
+            opacity: 0.8;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: transform 0.5s ease;
+            /* 默认最大宽度限制一下，防止一张图占满屏幕，你可以删掉这行让它完全原图 */
+            max-width: 300px; 
+        }
+
+        /* --- 左侧悬挂按钮 --- */
+        .sidebar {
+            position: fixed;
+            left: 20px;
+            top: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 100; /* 保证按钮在最上面 */
+        }
+
+        .cute-btn {
+            background-color: #ffb7b2;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 20px 20px 20px 0; /* 稍微有点造型 */
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .cute-btn:hover {
+            transform: scale(1.1) rotate(2deg);
+            background-color: #ff9e99;
+        }
+
+        /* 绳子效果（视觉装饰） */
+        .cute-btn::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: 10px;
+            width: 2px;
+            height: 20px;
+            background-color: #ccc;
+        }
+
+        /* --- 信件弹窗 --- */
+        #modal-overlay {
+            display: none; /* 默认隐藏 */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .letter-paper {
+            background: #fffdf0;
+            width: 90%;
+            max-width: 500px;
+            padding: 40px;
+            border-radius: 5px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            position: relative;
+            background-image: linear-gradient(#e0e0e0 1px, transparent 1px);
+            background-size: 100% 30px; /* 信纸线条 */
+            line-height: 30px;
+        }
+
+        .letter-content {
+            font-size: 18px;
+            color: #555;
+            min-height: 150px;
+            white-space: pre-wrap; /* 保留换行 */
+        }
+
+        .letter-date {
+            text-align: right;
+            font-size: 14px;
+            color: #999;
+            margin-top: 20px;
+        }
+
+        .letter-controls {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ctrl-btn {
+            background: #a2d2ff;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 15px;
+            color: white;
+            cursor: pointer;
+        }
+        .ctrl-btn:disabled {
+            background: #ddd;
+            cursor: not-allowed;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #aaa;
+        }
+
+        /* --- 回信输入框区域 --- */
+        #reply-area {
+            display: none;
+            margin-top: 20px;
+            border-top: 2px dashed #ddd;
+            padding-top: 10px;
+        }
+        #reply-input {
+            width: 100%;
+            height: 80px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- 漂浮图片容器 -->
+    <div id="floating-container">
+        <!-- 这里可以放几张默认的图片，防止一开始是空的 -->
+        <!-- 这里的 src 你需要换成你自己的图片链接，或者就留着空的等上传 -->
+        <!-- <img src="你的图片链接.jpg" class="float-img"> -->
+    </div>
+
+    <!-- 左侧按钮 -->
+    <div class="sidebar">
+        <button class="cute-btn" onclick="openLetter()">🕊️ 飞鸽传书</button>
+        <button class="cute-btn" onclick="triggerUpload()">📷 点击提交</button>
+    </div>
+
+    <!-- 隐藏的文件上传输入框 -->
+    <input type="file" id="file-input" multiple accept="image/*" style="display: none;" onchange="handleFiles(this.files)">
+
+    <!-- 信件弹窗 -->
+    <div id="modal-overlay">
+        <div class="letter-paper">
+            <div class="close-btn" onclick="closeLetter()">×</div>
+            
+            <div id="letter-display-area">
+                <div class="letter-content" id="content-text">这里是信的内容...</div>
+                <div class="letter-date" id="content-date">2023-12-25</div>
+            </div>
+
+            <div id="reply-area">
+                <p style="font-size: 14px; color: #888;">给 TA 的回信：</p>
+                <textarea id="reply-input" placeholder="写下你想说的话..."></textarea>
+                <button class="ctrl-btn" style="margin-top: 10px; background-color: #ffb7b2;" onclick="sendReply()">发送</button>
+            </div>
+
+            <div class="letter-controls">
+                <button class="ctrl-btn" id="prev-btn" onclick="changeLetter(-1)">上一封</button>
+                <button class="ctrl-btn" style="background-color: #ff9e99;" onclick="showReplyBox()">💌 回信</button>
+                <button class="ctrl-btn" id="next-btn" onclick="changeLetter(1)">下一封</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. 信件数据设置 (请在这里修改你想对他说的话) ---
+        const letters = [
+            {
+                text: "嗨！\n\n很高兴你能点开这个按钮。\n其实我想做一个网站给你看很久了。\n\n这是第一封信，用来测试一下飞鸽传书好不好用。",
+                date: "2023年10月1日 14:00"
+            },
+            {
+                text: "这几天天气转凉了，记得多穿点衣服。\n\n我在写代码的时候就在想，如果这些图片能代表心情就好了。",
+                date: "2023年10月20日 09:30"
+            },
+            {
+                text: "这是第三封信。\n\n如果你看到了这里，说明你很有耐心。\n希望你今天过得开心！",
+                date: "2024年12月24日 23:00"
+            }
+        ];
+
+        let currentLetterIndex = 0;
+
+        // --- 2. 漂浮图片逻辑 ---
+        const container = document.getElementById('floating-container');
+
+        // 让图片飘动的函数
+        function animateElement(element) {
+            // 随机生成起始位置
+            const startX = Math.random() * (window.innerWidth - 100);
+            const startY = Math.random() * (window.innerHeight - 100);
+            
+            element.style.left = startX + 'px';
+            element.style.top = startY + 'px';
+
+            // 随机生成飘动速度和方向
+            let velocityX = (Math.random() - 0.5) * 2; // 速度 -1 到 1
+            let velocityY = (Math.random() - 0.5) * 2;
+
+            function move() {
+                let rect = element.getBoundingClientRect();
+                let currentLeft = parseFloat(element.style.left);
+                let currentTop = parseFloat(element.style.top);
+
+                // 碰到边界反弹
+                if (rect.left <= 0 || rect.right >= window.innerWidth) velocityX *= -1;
+                if (rect.top <= 0 || rect.bottom >= window.innerHeight) velocityY *= -1;
+
+                element.style.left = (currentLeft + velocityX) + 'px';
+                element.style.top = (currentTop + velocityY) + 'px';
+
+                requestAnimationFrame(move);
+            }
+            move();
+        }
+
+        // 处理文件上传
+        function triggerUpload() {
+            document.getElementById('file-input').click();
+        }
+
+        function handleFiles(files) {
+            if (!files.length) return;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'float-img';
+                    
+                    // 随机大小，如果你想完全原图，可以注释掉下面这行，但建议保留以免图片太大撑爆
+                    // img.style.width = (Math.random() * 200 + 100) + 'px'; 
+                    
+                    container.appendChild(img);
+                    animateElement(img); // 开始飘动
+                }
+                reader.readAsDataURL(file);
+            }
+            // 提示用户
+            alert('图片已提交！它们正在屏幕上开始漂流了~');
+        }
+
+        // --- 3. 信件交互逻辑 ---
+        const modal = document.getElementById('modal-overlay');
+        const contentText = document.getElementById('content-text');
+        const contentDate = document.getElementById('content-date');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const replyArea = document.getElementById('reply-area');
+
+        function openLetter() {
+            modal.style.display = 'flex';
+            renderLetter();
+        }
+
+        function closeLetter() {
+            modal.style.display = 'none';
+            replyArea.style.display = 'none'; // 关掉时重置回信框
+        }
+
+        function renderLetter() {
+            const letter = letters[currentLetterIndex];
+            contentText.textContent = letter.text;
+            contentDate.textContent = letter.date;
+
+            // 控制按钮是否可用
+            prevBtn.disabled = currentLetterIndex === 0;
+            nextBtn.disabled = currentLetterIndex === letters.length - 1;
+        }
+
+        function changeLetter(step) {
+            currentLetterIndex += step;
+            renderLetter();
+        }
+
+        function showReplyBox() {
+            replyArea.style.display = 'block';
+        }
+
+        function sendReply() {
+            const replyText = document.getElementById('reply-input').value;
+            if (replyText.trim() === "") {
+                alert("信纸是空的哦，写点什么吧！");
+                return;
+            }
+            
+            // 这里的模拟发送
+            alert("回信已由飞鸽带走！(模拟发送成功)");
+            
+            // 如果你想真的发邮件，可以用下面这行代码替换上面的 alert：
+            // window.location.href = `mailto:你的邮箱@example.com?subject=来自网页的回信&body=${replyText}`;
+
+            document.getElementById('reply-input').value = ""; // 清空
+            replyArea.style.display = 'none';
+        }
+
+    </script>
 </body>
 </html>
