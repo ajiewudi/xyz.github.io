@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>我的个人主页</title>
+</head>
+<body style="text-align: center; padding-top: 50px; font-family: sans-serif;">
+
+    <h1>你好，世界！</h1>
+    <p>这是我利用 GitHub Pages 搭建的第一个免费网站。</p>
+    <p>我可以把这里当做我的博客、简历或者项目展示。</p>
+    
+</body>
+</html>
