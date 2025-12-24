@@ -7,107 +7,80 @@
     <style>
         /* --- 全局设置 --- */
         body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
             overflow: hidden; 
-            background-color: #fcf6f5; 
             font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+
+        /* --- 背景图设置 --- */
+        body {
+            /* 这里设置背景图，叠加一层半透明白色让文字更清晰 */
+            background: linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)), 
+                        url('images/bg.jpg') no-repeat center center fixed;
+            background-size: cover; /* 让图片铺满屏幕 */
         }
 
         /* --- 漂浮图片区域 --- */
         #floating-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1; 
-            pointer-events: none; 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1; pointer-events: none; 
         }
 
         .float-img {
-            position: absolute;
-            opacity: 0.8; 
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15); /* 稍微加重阴影让图片更立体 */
+            position: absolute; opacity: 0.9; 
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             transition: transform 0.5s ease;
-            max-width: 250px; /* 限制自动加载图片的大小 */
-            max-height: 250px;
+            max-width: 200px; max-height: 200px;
             object-fit: cover;
+            border: 3px solid #fff; /* 给图片加个白边框，像拍立得 */
         }
 
-        /* --- 左侧悬挂按钮 --- */
+        /* --- 左侧按钮 --- */
         .sidebar {
-            position: fixed;
-            left: 20px;
-            top: 100px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            z-index: 100; 
+            position: fixed; left: 20px; top: 100px;
+            display: flex; flex-direction: column; gap: 20px; z-index: 100; 
         }
 
         .cute-btn {
-            background-color: #ffb7b2;
-            color: white;
-            border: none;
-            padding: 15px 25px;
-            border-radius: 20px 20px 20px 0; 
-            font-size: 16px;
-            cursor: pointer;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            background-color: rgba(255, 183, 178, 0.9); /* 半透明红 */
+            backdrop-filter: blur(5px);
+            color: white; border: none; padding: 15px 25px;
+            border-radius: 20px; font-size: 16px; cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             transition: all 0.3s;
-            position: relative;
         }
+        .cute-btn:hover { transform: scale(1.05); background-color: #ff9e99; }
 
-        .cute-btn:hover {
-            transform: scale(1.1) rotate(2deg);
-            background-color: #ff9e99;
-        }
-        
-        .cute-btn::before {
-            content: '';
-            position: absolute;
-            top: -20px; left: 10px;
-            width: 2px; height: 20px;
-            background-color: #ccc;
-        }
-
-        /* --- 信件弹窗 (样式保持不变) --- */
+        /* --- 弹窗样式 --- */
         #modal-overlay {
-            display: none; 
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 200;
-            justify-content: center; align-items: center;
+            display: none; position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(3px); /* 背景模糊更高级 */
+            z-index: 200; justify-content: center; align-items: center;
         }
 
         .letter-paper {
-            background: #fffdf0;
-            width: 90%; max-width: 500px;
-            padding: 40px;
-            border-radius: 5px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            background: #fffdf0; width: 85%; max-width: 500px;
+            padding: 40px; border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             position: relative;
-            background-image: linear-gradient(#e0e0e0 1px, transparent 1px);
-            background-size: 100% 30px; 
-            line-height: 30px;
+            max-height: 80vh; overflow-y: auto; /* 内容太长可滚动 */
         }
 
-        .letter-content { font-size: 18px; color: #555; min-height: 150px; white-space: pre-wrap; }
-        .letter-date { text-align: right; font-size: 14px; color: #999; margin-top: 20px; }
-        .letter-controls { margin-top: 30px; display: flex; justify-content: space-between; align-items: center; }
-        .ctrl-btn { background: #a2d2ff; border: none; padding: 8px 15px; border-radius: 15px; color: white; cursor: pointer; }
-        .ctrl-btn:disabled { background: #ddd; cursor: not-allowed; }
-        .close-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #aaa; }
+        .letter-content { font-size: 17px; color: #444; min-height: 100px; white-space: pre-wrap; line-height: 1.8; }
+        .letter-date { text-align: right; font-size: 13px; color: #888; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;}
         
-        #reply-area { display: none; margin-top: 20px; border-top: 2px dashed #ddd; padding-top: 10px; }
-        #reply-input { width: 100%; height: 80px; border: 1px solid #ddd; border-radius: 5px; padding: 10px; box-sizing: border-box; font-family: inherit; }
+        .letter-controls { margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .ctrl-btn { background: #8ec5fc; border: none; padding: 8px 16px; border-radius: 20px; color: white; cursor: pointer; font-size: 14px;}
+        .ctrl-btn:disabled { background: #e0e0e0; cursor: not-allowed; }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #ccc; }
 
+        /* --- 回信区域 --- */
+        #reply-area { display: none; margin-top: 20px; background: #fafafa; padding: 15px; border-radius: 8px; }
+        #reply-input { width: 100%; height: 80px; border: 1px solid #ddd; border-radius: 4px; padding: 10px; box-sizing: border-box; font-family: inherit; resize: none; }
     </style>
 </head>
 <body>
@@ -115,119 +88,148 @@
     <div id="floating-container"></div>
 
     <div class="sidebar">
-        <button class="cute-btn" onclick="openLetter()">🕊️ 飞鸽传书</button>
-        <!-- 注意：这个提交按钮现在主要用于“玩一下”，无法永久保存 -->
+        <button class="cute-btn" onclick="openLetter()">🕊️ 见信如晤</button>
         <button class="cute-btn" onclick="triggerUpload()">📷 此时此刻</button>
     </div>
 
+    <!-- 隐藏的文件输入 -->
     <input type="file" id="file-input" multiple accept="image/*" style="display: none;" onchange="handleFiles(this.files)">
 
+    <!-- 弹窗 -->
     <div id="modal-overlay">
         <div class="letter-paper">
             <div class="close-btn" onclick="closeLetter()">×</div>
+            
             <div id="letter-display-area">
-                <div class="letter-content" id="content-text">...</div>
+                <div class="letter-content" id="content-text">正在从云端获取信件...</div>
                 <div class="letter-date" id="content-date">...</div>
             </div>
-            <div id="reply-area">
-                <p style="font-size: 14px; color: #888;">给 TA 的回信：</p>
-                <textarea id="reply-input" placeholder="写下你想说的话..."></textarea>
-                <button class="ctrl-btn" style="margin-top: 10px; background-color: #ffb7b2;" onclick="sendReply()">发送</button>
-            </div>
+
+            <!-- 回信表单 (关键部分) -->
+            <form id="reply-form" onsubmit="handleReplySubmit(event)">
+                <div id="reply-area">
+                    <p style="font-size: 14px; color: #888; margin:0 0 5px 0;">回信：</p>
+                    <textarea id="reply-input" name="message" placeholder="写下你想说的话...（点击发送后我会收到邮件）" required></textarea>
+                    <!-- 隐藏字段，告诉你是针对哪封信回的 -->
+                    <input type="hidden" id="reply-subject" name="subject" value="来自网页的新回信">
+                    <button type="submit" class="ctrl-btn" style="margin-top: 10px; background-color: #ffb7b2; width: 100%;">发送回信</button>
+                </div>
+            </form>
+
             <div class="letter-controls">
                 <button class="ctrl-btn" id="prev-btn" onclick="changeLetter(-1)">上一封</button>
-                <button class="ctrl-btn" style="background-color: #ff9e99;" onclick="showReplyBox()">💌 回信</button>
+                <button class="ctrl-btn" style="background-color: #ff9e99;" onclick="toggleReplyBox()">💌 写回信</button>
                 <button class="ctrl-btn" id="next-btn" onclick="changeLetter(1)">下一封</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 1. 配置区域 ---
-        const githubUsername = 'ajiewudi'; // 你的用户名
-        const repoName = 'ajiewudi.github.io'; // 你的仓库名
-        const imageFolder = 'images'; // 刚才建的文件夹名字
+        // ================= 配置区域 (请修改这里!) =================
+        const config = {
+            githubUsername: 'ajiewudi',      // 你的用户名
+            repoName: 'ajiewudi.github.io',  // 你的仓库名
+            // 去 formspree.io 注册后，把你的 URL 填在这里，例如 'https://formspree.io/f/xyza...'
+            // 如果不填，回信功能无法发送邮件，只能弹窗提示。
+            formspreeUrl: ''                 
+        };
+        // ========================================================
 
-        const letters = [
-            { text: "嗨！\n\n这些漂浮的照片，都是我想和你分享的瞬间。", date: "2023-12-25" },
-            { text: "虽然代码不能保存你现在的上传，\n但我已经把最美好的回忆都藏在了文件夹里。", date: "2023-12-26" },
-        ];
+        let letters = []; // 存放下载下来的信
+        let currentLetterIndex = 0;
 
-        // --- 2. 自动加载 GitHub 文件夹里的图片 ---
+        // 页面加载完成后执行
         window.onload = function() {
-            // 使用 GitHub API 获取文件夹内容
-            const apiUrl = `https://api.github.com/repos/${githubUsername}/${repoName}/contents/${imageFolder}`;
+            loadImages();
+            loadLetters();
+        };
+
+        // --- 1. 自动加载图片逻辑 ---
+        function loadImages() {
+            const apiUrl = `https://api.github.com/repos/${config.githubUsername}/${config.repoName}/contents/images`;
+            const container = document.getElementById('floating-container');
 
             fetch(apiUrl)
-            .then(response => {
-                if (response.ok) return response.json();
-                throw new Error('文件夹不存在或为空');
-            })
+            .then(res => res.ok ? res.json() : [])
             .then(data => {
                 data.forEach(file => {
-                    // 检查是否是图片文件 (jpg, png, jpeg, gif)
-                    if (file.name.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                    // 排除 bg.jpg，不让背景图也飘起来
+                    if (file.name.match(/\.(jpg|jpeg|png|gif)$/i) && file.name !== 'bg.jpg') {
                         createFloatingImage(file.download_url);
                     }
                 });
             })
-            .catch(error => {
-                console.log("没有自动加载图片，可能是还没有创建 images 文件夹。", error);
-            });
-        };
-
-        // --- 3. 漂浮图片逻辑 ---
-        const container = document.getElementById('floating-container');
+            .catch(err => console.log("图片加载跳过（可能是本地测试或无文件夹）"));
+        }
 
         function createFloatingImage(url) {
             const img = document.createElement('img');
             img.src = url;
             img.className = 'float-img';
-            container.appendChild(img);
-            
-            // 图片加载完成后开始动，避免位置计算错误
+            document.getElementById('floating-container').appendChild(img);
             img.onload = () => animateElement(img);
         }
 
-        function animateElement(element) {
+        function animateElement(el) {
             const startX = Math.random() * (window.innerWidth - 100);
             const startY = Math.random() * (window.innerHeight - 100);
-            element.style.left = startX + 'px';
-            element.style.top = startY + 'px';
-
-            let velocityX = (Math.random() - 0.5) * 1.5; 
-            let velocityY = (Math.random() - 0.5) * 1.5;
+            el.style.left = startX + 'px'; el.style.top = startY + 'px';
+            let vx = (Math.random() - 0.5) * 1; let vy = (Math.random() - 0.5) * 1;
 
             function move() {
-                let rect = element.getBoundingClientRect();
-                let currentLeft = parseFloat(element.style.left);
-                let currentTop = parseFloat(element.style.top);
-
-                if (rect.left <= 0 || rect.right >= window.innerWidth) velocityX *= -1;
-                if (rect.top <= 0 || rect.bottom >= window.innerHeight) velocityY *= -1;
-
-                element.style.left = (currentLeft + velocityX) + 'px';
-                element.style.top = (currentTop + velocityY) + 'px';
+                let rect = el.getBoundingClientRect();
+                let x = parseFloat(el.style.left); let y = parseFloat(el.style.top);
+                if (rect.left<=0 || rect.right>=window.innerWidth) vx*=-1;
+                if (rect.top<=0 || rect.bottom>=window.innerHeight) vy*=-1;
+                el.style.left = (x+vx)+'px'; el.style.top = (y+vy)+'px';
                 requestAnimationFrame(move);
             }
             move();
         }
 
-        // --- 4. 按钮上传 (本地临时展示) ---
-        function triggerUpload() { document.getElementById('file-input').click(); }
-        
-        function handleFiles(files) {
-            if (!files.length) return;
-            for (let i = 0; i < files.length; i++) {
-                const reader = new FileReader();
-                reader.onload = function(e) { createFloatingImage(e.target.result); }
-                reader.readAsDataURL(files[i]);
+        // --- 2. 自动读取信件逻辑 ---
+        async function loadLetters() {
+            const apiUrl = `https://api.github.com/repos/${config.githubUsername}/${config.repoName}/contents/letters`;
+            
+            try {
+                const res = await fetch(apiUrl);
+                if (!res.ok) throw new Error("无法读取 letters 文件夹");
+                const files = await res.json();
+
+                // 过滤出 .txt 文件并排序
+                const txtFiles = files.filter(f => f.name.endsWith('.txt')).sort((a,b) => a.name.localeCompare(b.name));
+
+                // 逐个获取内容
+                const loadedLetters = [];
+                for (const file of txtFiles) {
+                    const contentRes = await fetch(file.download_url);
+                    const text = await contentRes.text();
+                    // 解析：第一行是日期，剩下是内容
+                    const splitIndex = text.indexOf('\n');
+                    let dateStr = "未知日期";
+                    let bodyStr = text;
+                    
+                    if (splitIndex !== -1) {
+                        dateStr = text.substring(0, splitIndex).trim();
+                        bodyStr = text.substring(splitIndex + 1).trim();
+                    }
+
+                    loadedLetters.push({ date: dateStr, text: bodyStr, fileName: file.name });
+                }
+
+                if (loadedLetters.length > 0) {
+                    letters = loadedLetters;
+                } else {
+                    letters = [{ date: "系统提示", text: "letters 文件夹里没有 txt 文件哦。" }];
+                }
+
+            } catch (err) {
+                console.error(err);
+                letters = [{ date: "系统提示", text: "还没有上传信件，或者 letters 文件夹不存在。\n\n请在仓库建立 letters 文件夹并放入 1.txt 等文件。" }];
             }
-            alert('照片已添加！(注意：这只是临时展示，刷新后会消失哦，想要永久保存请去后台上传)');
         }
 
-        // --- 5. 信件逻辑 ---
-        let currentLetterIndex = 0;
+        // --- 3. 交互逻辑 ---
         const modal = document.getElementById('modal-overlay');
         const contentText = document.getElementById('content-text');
         const contentDate = document.getElementById('content-date');
@@ -235,24 +237,78 @@
         const nextBtn = document.getElementById('next-btn');
         const replyArea = document.getElementById('reply-area');
 
-        function openLetter() { modal.style.display = 'flex'; renderLetter(); }
+        function openLetter() {
+            modal.style.display = 'flex';
+            if (letters.length > 0) renderLetter();
+        }
         function closeLetter() { modal.style.display = 'none'; replyArea.style.display = 'none'; }
         
         function renderLetter() {
-            const letter = letters[currentLetterIndex];
-            contentText.textContent = letter.text;
-            contentDate.textContent = letter.date;
+            const l = letters[currentLetterIndex];
+            contentText.textContent = l.text;
+            contentDate.textContent = l.date;
             prevBtn.disabled = currentLetterIndex === 0;
             nextBtn.disabled = currentLetterIndex === letters.length - 1;
-        }
-        function changeLetter(step) { currentLetterIndex += step; renderLetter(); }
-        function showReplyBox() { replyArea.style.display = 'block'; }
-        function sendReply() { 
-            document.getElementById('reply-input').value = ""; 
-            replyArea.style.display = 'none';
-            alert("心意已收到~"); 
+            
+            // 更新回信的主题，让你知道是回哪封信的
+            document.getElementById('reply-subject').value = `Re: [${l.date}] 的回信`;
         }
 
+        function changeLetter(step) {
+            currentLetterIndex += step;
+            renderLetter();
+            replyArea.style.display = 'none'; // 换信时收起回信框
+        }
+
+        function toggleReplyBox() {
+            replyArea.style.display = (replyArea.style.display === 'block') ? 'none' : 'block';
+        }
+
+        // --- 4. 处理回信发送 (Formspree) ---
+        function handleReplySubmit(e) {
+            e.preventDefault(); // 阻止默认跳转页面
+            
+            const message = document.getElementById('reply-input').value;
+            if (!message.trim()) return;
+
+            if (!config.formspreeUrl) {
+                alert("你还没有配置 Formspree 链接！\n\n但这模拟成功了：\n" + message);
+                document.getElementById('reply-input').value = "";
+                replyArea.style.display = 'none';
+                return;
+            }
+
+            // 发送到 Formspree
+            const form = e.target;
+            const data = new FormData(form);
+
+            fetch(config.formspreeUrl, {
+                method: form.method,
+                body: data,
+                headers: { 'Accept': 'application/json' }
+            }).then(response => {
+                if (response.ok) {
+                    alert("回信已成功发送到你的邮箱！🕊️");
+                    document.getElementById('reply-input').value = "";
+                    replyArea.style.display = 'none';
+                } else {
+                    alert("发送失败，请检查配置。");
+                }
+            }).catch(error => {
+                alert("发送出错，网络问题？");
+            });
+        }
+
+        // 临时上传功能
+        function triggerUpload() { document.getElementById('file-input').click(); }
+        function handleFiles(files) {
+            if(!files.length) return;
+            for(let i=0; i<files.length; i++){
+                let reader = new FileReader();
+                reader.onload = e => createFloatingImage(e.target.result);
+                reader.readAsDataURL(files[i]);
+            }
+        }
     </script>
 </body>
 </html>
