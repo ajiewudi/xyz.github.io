@@ -92,8 +92,8 @@
         <button class="cute-btn" onclick="triggerUpload()">📷 提交图片</button>
     </div>
 
-    <!-- 隐藏的文件输入 -->
-    <input type="file" id="file-input" multiple accept="image/*" style="display: none;" onchange="handleFiles(this.files)">
+    <!-- 隐藏的文件输入 (关键修改：添加 name="attachment" 并绑定新函数) -->
+    <input type="file" id="file-input" name="attachment" accept="image/*" style="display: none;" onchange="handleImageUpload(this.files)">
 
     <!-- 弹窗 -->
     <div id="modal-overlay">
@@ -105,12 +105,12 @@
                 <div class="letter-date" id="content-date">...</div>
             </div>
 
-            <!-- 回信表单 (关键部分) -->
+            <!-- 回信表单 -->
             <form id="reply-form" onsubmit="handleReplySubmit(event)">
                 <div id="reply-area">
                     <p style="font-size: 14px; color: #888; margin:0 0 5px 0;">回信：</p>
                     <textarea id="reply-input" name="message" placeholder="写下你想说的话...（点击发送后我会收到邮件）" required></textarea>
-                    <!-- 隐藏字段，告诉你是针对哪封信回的 -->
+                    <!-- 隐藏字段 -->
                     <input type="hidden" id="reply-subject" name="subject" value="来自网页的新回信">
                     <button type="submit" class="ctrl-btn" style="margin-top: 10px; background-color: #ffb7b2; width: 100%;">发送回信</button>
                 </div>
@@ -129,7 +129,7 @@
         const config = {
             githubUsername: 'ajiewudi',      // 你的用户名
             repoName: 'ajiewudi.github.io',  // 你的仓库名
-            // 在这里填入你在 pushplus.plus 获得的 Token
+            // 你的 PushPlus Token
             pushPlusToken: '8a3ba3a0fcdb475f8c259e54686a838e'        
         };
         // ========================================================
@@ -242,26 +242,18 @@
         }
         function closeLetter() { modal.style.display = 'none'; replyArea.style.display = 'none'; }
         
-
-
         function renderLetter() {
             const l = letters[currentLetterIndex];
             
-            // --- 关键修改：先读取原来的信，再看看有没有本地保存的回信 ---
+            // --- 检查是否有回信 ---
             let finalContent = l.text;
-            
-            // 使用文件名作为唯一标识，避免不同信件的回信搞混
             const replyKey = 'reply_to_' + l.fileName;
             const mySavedReply = localStorage.getItem(replyKey);
 
             if (mySavedReply) {
-                // 如果他回过信，就拼接到后面显示
                 finalContent += `\n\n\n─────── ( 你的回信 ) ───────\n\n${mySavedReply}`;
-                
-                // 如果已经回过信，隐藏输入框，避免重复发送
                 document.getElementById('reply-area').style.display = 'none';
             }
-            // ----------------------------------------------------
 
             contentText.textContent = finalContent;
             contentDate.textContent = l.date;
@@ -269,20 +261,6 @@
             prevBtn.disabled = currentLetterIndex === 0;
             nextBtn.disabled = currentLetterIndex === letters.length - 1;
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
 
         function changeLetter(step) {
             currentLetterIndex += step;
@@ -294,17 +272,16 @@
             replyArea.style.display = (replyArea.style.display === 'block') ? 'none' : 'block';
         }
 
-        // --- 4. 处理回信发送 (Formspree) ---
+        // --- 4. 处理回信发送 (PushPlus 通知 + 本地更新) ---
         function handleReplySubmit(e) {
             e.preventDefault(); 
             
             const messageInput = document.getElementById('reply-input');
-            const replyText = messageInput.value; // 他的回信内容
+            const replyText = messageInput.value; 
             const submitBtn = document.querySelector('#reply-form button[type="submit"]');
             
-            // 获取当前显示的这封信的所有信息（原文、日期、文件名）
             const currentLetter = letters[currentLetterIndex]; 
-            const originalText = currentLetter.text; // 信件原文
+            const originalText = currentLetter.text; 
 
             if (!replyText.trim()) {
                 alert("写点什么再发嘛~ 🥺");
@@ -315,9 +292,7 @@
             submitBtn.disabled = true;
             submitBtn.innerText = "正在飞奔向你...";
 
-            // ----------------------------------------------------
-            // ✨ 核心修改：把原文和回信拼接到一起 ✨
-            // ----------------------------------------------------
+            // 拼接原文和回信
             const combinedContent = 
                 `📅 信件日期：${currentLetter.date}\n` +
                 `📄 文件名：${currentLetter.fileName}\n\n` +
@@ -329,11 +304,11 @@
             const pushData = {
                 token: config.pushPlusToken,
                 title: `💌 收到新的回信！来自 [${currentLetter.date}]`,
-                content: combinedContent, // 这里发送拼接好的完整内容
+                content: combinedContent, 
                 template: 'txt' 
             };
 
-            // 3. 发送请求 (PushPlus)
+            // 3. 发送请求
             fetch('http://www.pushplus.plus/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -341,56 +316,130 @@
             })
             .then(response => response.json())
             .then(data => {
-                // 4. 发送成功后的处理（视觉效果：修改网页显示）
-                
-                // A. 保存回信到本地（只保存回信部分即可，因为原文我们本来就有）
                 const replyKey = 'reply_to_' + currentLetter.fileName;
                 localStorage.setItem(replyKey, replyText);
 
-                // B. 刷新界面，让他立刻看到信后面多了他的话
                 renderLetter();
-
                 alert("收到啦！你的回信已经和我的信融为一体了 ❤️\n(我也在微信上收到提醒啦)");
             })
             .catch(error => {
                 console.error('发送失败:', error);
-                // 即使断网，也要模拟成功
                 const replyKey = 'reply_to_' + currentLetter.fileName;
                 localStorage.setItem(replyKey, replyText);
                 renderLetter();
                 alert("虽然网络有点小波动，但回信我已经记下了！");
             })
             .finally(() => {
-                // 恢复按钮状态
                 submitBtn.disabled = false;
                 submitBtn.innerText = "发送回信";
                 messageInput.value = ""; 
             });
         }
 
+        // ============================================
+        // --- 5. 新版图片上传逻辑 (压缩 + 双通道发送) ---
+        // ============================================
+
+        // 触发文件选择
+        function triggerUpload() { 
+            document.getElementById('file-input').click(); 
+        }
+
+        // 处理文件上传
+        function handleImageUpload(files) {
+            if (!files.length) return;
+            const file = files[0]; 
+            const submitBtn = document.querySelector('.sidebar button:nth-child(2)'); // “提交图片”按钮
+
+            // --- A. 视觉特效：立刻让他看到图片飘起来 ---
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                createFloatingImage(e.target.result); 
+            };
+            reader.readAsDataURL(file);
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = "正在处理...";
+
+            // --- B. 压缩图片并发送 ---
+            compressImage(file, 0.7, function(compressedBlob) {
+                
+                // 1. PushPlus 立刻通知 (微信提醒)
+                const pushData = {
+                    token: config.pushPlusToken, 
+                    title: `📷 他在网页提交了一张照片！`,
+                    content: `他提交了一张照片（文件名：${file.name}）。\n\n请立刻去你的邮箱（3055392767@qq.com）查看附件！\n\n(如果垃圾箱也没有，说明网络实在太卡传失败了，快去找他要原图！)`,
+                    template: 'txt'
+                };
+                
+                fetch('http://www.pushplus.plus/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(pushData)
+                }).catch(err => console.log("PushPlus通知发送失败", err));
 
 
+                // 2. FormSubmit 上传图片 (发到邮箱)
+                submitBtn.innerText = "正在上传...";
+                
+                const formData = new FormData();
+                const myEmail = "3055392767@qq.com"; // 你的邮箱
 
+                formData.append("email", myEmail); 
+                formData.append("_subject", "📷 (附件) 网页收到的新照片");
+                formData.append("message", "这是压缩后的照片，请下载后放入 images 文件夹。");
+                formData.append("attachment", compressedBlob, "photo.jpg"); 
+                formData.append("_captcha", "false"); 
 
+                fetch(`https://formsubmit.co/${myEmail}`, {
+                    method: "POST",
+                    body: formData
+                })
+                .then(response => {
+                    console.log("图片上传完成");
+                    alert("照片已成功飞入相册！(我也收到提醒啦~ 📸)");
+                })
+                .catch(error => {
+                    console.error("图片上传失败:", error);
+                    // 只要PushPlus成功了，这就算成功
+                    alert("照片已添加到记忆墙！");
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "📷 提交图片";
+                    document.getElementById('file-input').value = '';
+                });
+            });
+        }
 
-
-
-
-
-
-
-
-
-        
-
-        // 临时上传功能
-        function triggerUpload() { document.getElementById('file-input').click(); }
-        function handleFiles(files) {
-            if(!files.length) return;
-            for(let i=0; i<files.length; i++){
-                let reader = new FileReader();
-                reader.onload = e => createFloatingImage(e.target.result);
-                reader.readAsDataURL(files[i]);
+        // --- 图片压缩工具函数 ---
+        function compressImage(file, quality, callback) {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function(event) {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    let width = img.width;
+                    let height = img.height;
+                    const maxSize = 1024; // 限制最大尺寸
+                    
+                    if (width > height && width > maxSize) {
+                        height *= maxSize / width; width = maxSize;
+                    } else if (height > maxSize) {
+                        width *= maxSize / height; height = maxSize;
+                    }
+                    
+                    canvas.width = width; canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // 输出为 Blob 对象
+                    canvas.toBlob(function(blob) {
+                        callback(blob);
+                    }, 'image/jpeg', quality);
+                }
             }
         }
     </script>
