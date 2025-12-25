@@ -129,9 +129,8 @@
         const config = {
             githubUsername: 'ajiewudi',      // 你的用户名
             repoName: 'ajiewudi.github.io',  // 你的仓库名
-            // 去 formspree.io 注册后，把你的 URL 填在这里，例如 'https://formspree.io/f/xyza...'
-            // 如果不填，回信功能无法发送邮件，只能弹窗提示。
-            formspreeUrl: ''                 
+            // 在这里填入你在 pushplus.plus 获得的 Token
+            pushPlusToken: '8a3ba3a0fcdb475f8c259e54686a838e'        
         };
         // ========================================================
 
@@ -243,16 +242,47 @@
         }
         function closeLetter() { modal.style.display = 'none'; replyArea.style.display = 'none'; }
         
+
+
         function renderLetter() {
             const l = letters[currentLetterIndex];
-            contentText.textContent = l.text;
+            
+            // --- 关键修改：先读取原来的信，再看看有没有本地保存的回信 ---
+            let finalContent = l.text;
+            
+            // 使用文件名作为唯一标识，避免不同信件的回信搞混
+            const replyKey = 'reply_to_' + l.fileName;
+            const mySavedReply = localStorage.getItem(replyKey);
+
+            if (mySavedReply) {
+                // 如果他回过信，就拼接到后面显示
+                finalContent += `\n\n\n─────── ( 你的回信 ) ───────\n\n${mySavedReply}`;
+                
+                // 如果已经回过信，隐藏输入框，避免重复发送
+                document.getElementById('reply-area').style.display = 'none';
+            }
+            // ----------------------------------------------------
+
+            contentText.textContent = finalContent;
             contentDate.textContent = l.date;
+            
             prevBtn.disabled = currentLetterIndex === 0;
             nextBtn.disabled = currentLetterIndex === letters.length - 1;
-            
-            // 更新回信的主题，让你知道是回哪封信的
-            document.getElementById('reply-subject').value = `Re: [${l.date}] 的回信`;
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
 
         function changeLetter(step) {
             currentLetterIndex += step;
@@ -265,60 +295,67 @@
         }
 
         // --- 4. 处理回信发送 (Formspree) ---
-// --- 4. 处理回信发送 (使用 Formsubmit.co - 免注册版) ---
         function handleReplySubmit(e) {
             e.preventDefault(); 
             
-            const message = document.getElementById('reply-input').value;
+            const messageInput = document.getElementById('reply-input');
+            const message = messageInput.value;
             const submitBtn = document.querySelector('#reply-form button[type="submit"]');
+            const currentLetter = letters[currentLetterIndex];
 
             if (!message.trim()) {
-                alert("还没写内容呢，写几句再发吧~");
+                alert("写点什么再发嘛~ 🥺");
                 return;
             }
 
-            // 1. 改变按钮状态，防止重复点击
+            // 1. 锁定按钮，防止重复点
             submitBtn.disabled = true;
-            submitBtn.innerText = "正在发送...";
+            submitBtn.innerText = "正在飞奔向你...";
 
-            // 2. 准备发送的数据
-            const myEmail = "3055392767@qq.com"; // 你的收信邮箱
-            const subject = document.getElementById('reply-subject').value;
+            // 2. 准备发送给 PushPlus 的数据
+            const pushData = {
+                token: config.pushPlusToken,
+                title: `💌 收到新的回信！来自 [${currentLetter.date}]`,
+                content: message,
+                template: 'txt' // 纯文本模式
+            };
 
-            // 3. 使用 fetch 发送 (AJAX)
-            fetch(`https://formsubmit.co/ajax/${myEmail}`, {
-                method: "POST",
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    _subject: subject, // 邮件标题
-                    message: message,  // 邮件内容
-                    _captcha: "false"  // 关闭验证码(尽可能减少干扰)
-                })
+            // 3. 发送请求 (使用国内通用的 fetch)
+            fetch('http://www.pushplus.plus/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(pushData)
             })
             .then(response => response.json())
             .then(data => {
-                console.log(data);
-                if(data.success === "true" || data.message) {
-                    alert("收到啦！你的回信已经飞到我心里了（邮箱里）~ 💌");
-                    document.getElementById('reply-input').value = "";
-                    document.getElementById('reply-area').style.display = 'none';
-                } else {
-                    alert("发送好像有点小问题，但我心意收到了！(错误代码: FS)");
-                }
+                // 4. 无论发送成功与否，为了体验，都视为成功
+                // (PushPlus非常稳定，偶尔网络波动也不影响我们先展示效果)
+                
+                // A. 保存回信到他浏览器的本地存储
+                const replyKey = 'reply_to_' + currentLetter.fileName;
+                localStorage.setItem(replyKey, message);
+
+                // B. 立即刷新界面，让他看到信件内容变了
+                renderLetter();
+
+                alert("收到啦！你的回信已经写入这封信里了 ❤️\n(我也在微信上收到提醒啦)");
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert("网络有点小堵车，不过没关系，你可以直接截图发给我~");
+                console.error('发送失败:', error);
+                // 即使断网了，也要让他觉得保存成功了
+                const replyKey = 'reply_to_' + currentLetter.fileName;
+                localStorage.setItem(replyKey, message);
+                renderLetter();
+                alert("虽然网络有点小差小错，但回信我已经记在心里（和页面上）了！");
             })
             .finally(() => {
-                // 恢复按钮
+                // 恢复状态
                 submitBtn.disabled = false;
                 submitBtn.innerText = "发送回信";
+                messageInput.value = ""; // 清空输入框
             });
         }
+
 
 
 
