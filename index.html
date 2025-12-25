@@ -299,28 +299,41 @@
             e.preventDefault(); 
             
             const messageInput = document.getElementById('reply-input');
-            const message = messageInput.value;
+            const replyText = messageInput.value; // 他的回信内容
             const submitBtn = document.querySelector('#reply-form button[type="submit"]');
-            const currentLetter = letters[currentLetterIndex];
+            
+            // 获取当前显示的这封信的所有信息（原文、日期、文件名）
+            const currentLetter = letters[currentLetterIndex]; 
+            const originalText = currentLetter.text; // 信件原文
 
-            if (!message.trim()) {
+            if (!replyText.trim()) {
                 alert("写点什么再发嘛~ 🥺");
                 return;
             }
 
-            // 1. 锁定按钮，防止重复点
+            // 1. 锁定按钮
             submitBtn.disabled = true;
             submitBtn.innerText = "正在飞奔向你...";
+
+            // ----------------------------------------------------
+            // ✨ 核心修改：把原文和回信拼接到一起 ✨
+            // ----------------------------------------------------
+            const combinedContent = 
+                `📅 信件日期：${currentLetter.date}\n` +
+                `📄 文件名：${currentLetter.fileName}\n\n` +
+                `📝 【信件原文】：\n${originalText}\n\n` +
+                `------------------------------------\n` +
+                `💌 【TA的回信】：\n${replyText}`;
 
             // 2. 准备发送给 PushPlus 的数据
             const pushData = {
                 token: config.pushPlusToken,
                 title: `💌 收到新的回信！来自 [${currentLetter.date}]`,
-                content: message,
-                template: 'txt' // 纯文本模式
+                content: combinedContent, // 这里发送拼接好的完整内容
+                template: 'txt' 
             };
 
-            // 3. 发送请求 (使用国内通用的 fetch)
+            // 3. 发送请求 (PushPlus)
             fetch('http://www.pushplus.plus/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -328,31 +341,30 @@
             })
             .then(response => response.json())
             .then(data => {
-                // 4. 无论发送成功与否，为了体验，都视为成功
-                // (PushPlus非常稳定，偶尔网络波动也不影响我们先展示效果)
+                // 4. 发送成功后的处理（视觉效果：修改网页显示）
                 
-                // A. 保存回信到他浏览器的本地存储
+                // A. 保存回信到本地（只保存回信部分即可，因为原文我们本来就有）
                 const replyKey = 'reply_to_' + currentLetter.fileName;
-                localStorage.setItem(replyKey, message);
+                localStorage.setItem(replyKey, replyText);
 
-                // B. 立即刷新界面，让他看到信件内容变了
+                // B. 刷新界面，让他立刻看到信后面多了他的话
                 renderLetter();
 
-                alert("收到啦！你的回信已经写入这封信里了 ❤️\n(我也在微信上收到提醒啦)");
+                alert("收到啦！你的回信已经和我的信融为一体了 ❤️\n(我也在微信上收到提醒啦)");
             })
             .catch(error => {
                 console.error('发送失败:', error);
-                // 即使断网了，也要让他觉得保存成功了
+                // 即使断网，也要模拟成功
                 const replyKey = 'reply_to_' + currentLetter.fileName;
-                localStorage.setItem(replyKey, message);
+                localStorage.setItem(replyKey, replyText);
                 renderLetter();
-                alert("虽然网络有点小差小错，但回信我已经记在心里（和页面上）了！");
+                alert("虽然网络有点小波动，但回信我已经记下了！");
             })
             .finally(() => {
-                // 恢复状态
+                // 恢复按钮状态
                 submitBtn.disabled = false;
                 submitBtn.innerText = "发送回信";
-                messageInput.value = ""; // 清空输入框
+                messageInput.value = ""; 
             });
         }
 
